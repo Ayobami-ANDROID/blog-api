@@ -75,8 +75,7 @@ router.post("/upload", async (req: Request, res: Response) => {
 });
 
 
-//Get all Post
-router.get("/posts", async (req: Request, res: Response) => {
+router.get("/GetAllposts", async (req: Request, res: Response) => {
   try {
     const reply = await GET_ASYNC('posts');
     if (reply) {
@@ -94,6 +93,35 @@ router.get("/posts", async (req: Request, res: Response) => {
     await client.query("ROLLBACK");
     res.status(400);
     res.json(err);
+  }
+});
+
+
+
+router.get("/posts", async (req: Request, res: Response) => {
+  try {
+    const { page = 1, pageSize = 10, searchQuery = "" } = req.query;
+    const pageInt = parseInt(page as string) || 1;
+    const pageSizeInt = parseInt(pageSize as string) || 10;
+    const offset = (pageInt - 1) * pageSizeInt;
+
+    // Construct the SQL query with pagination and search
+    const query = `
+      SELECT * FROM post
+      WHERE title ILIKE $1
+      ORDER BY post_id
+      LIMIT $2
+      OFFSET $3
+    `;
+    const values = [`%${searchQuery}%`, pageSizeInt, offset];
+
+    // Execute the SQL query to get paginated and filtered posts
+    const allPosts = await client.query(query, values);
+
+    res.json(allPosts.rows);
+  } catch (err) {
+    res.status(500);
+    res.json({ error: "Internal server error" });
   }
 });
 
@@ -244,8 +272,5 @@ router.delete("/post/:id", async (req: Request, res: Response) => {
     res.json(err);
   }
 });
-
-module.exports = router;
-
 
 module.exports = router;
